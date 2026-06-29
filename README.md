@@ -22,14 +22,42 @@ Read once per tick via a single shell process (no `cat` forks):
 
 Update interval: 5 s. CPU load needs two ticks before the first value appears.
 
+## Requirements
+
+- KDE Plasma 6 (`X-Plasma-API-Minimum-Version` 6.0)
+- A Linux system exposing `/sys/class/power_supply/BAT0`, `/sys/class/thermal/thermal_zone0` and `/proc/stat`
+
 ## Install
 
+Clone into the local plasmoids directory:
+
 ```sh
-cp -r com.local.powermeter ~/.local/share/plasma/plasmoids/
+git clone https://github.com/michaelkrisper/powermeter-plasmoid.git \
+  ~/.local/share/plasma/plasmoids/com.local.powermeter
+```
+
+The target directory **must** be named `com.local.powermeter` (matches the `Id`
+in `metadata.json`). Then restart the shell:
+
+```sh
 kquitapp6 plasmashell; nohup plasmashell >/dev/null 2>&1 &
 ```
 
-Then add **Power Meter** to a panel via *Add Widgets*.
+Add **Power Meter** to a panel via right-click → *Add Widgets* → search "Power Meter".
+
+### Update
+
+```sh
+git -C ~/.local/share/plasma/plasmoids/com.local.powermeter pull
+rm -rf ~/.cache/plasmashell/qmlcache ~/.cache/org.kde.plasmashell
+kquitapp6 plasmashell; nohup plasmashell >/dev/null 2>&1 &
+```
+
+### Uninstall
+
+```sh
+rm -rf ~/.local/share/plasma/plasmoids/com.local.powermeter
+```
 
 If QML changes don't show up, clear the cache first:
 
