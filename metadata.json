@@ -1,0 +1,13 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [{"Email": "michael.krisper@gmail.com", "Name": "Michael Krisper"}],
+        "Category": "System Information",
+        "Description": "Battery time left, CPU load, temperature, power draw and charge in the panel",
+        "Icon": "battery",
+        "Id": "com.local.powermeter",
+        "Name": "Power Meter",
+        "Version": "1.1"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
