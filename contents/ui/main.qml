@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import org.kde.plasma.plasmoid
 import org.kde.plasma.plasma5support as P5Support
 import org.kde.plasma.components as PlasmaComponents
+import org.kde.kirigami as Kirigami
 
 PlasmoidItem {
     id: root
@@ -49,40 +50,60 @@ PlasmoidItem {
             anchors.centerIn: parent
             spacing: 0
 
-            // remaining time — biggest, top, right-aligned
-            PlasmaComponents.Label {
+            // remaining time — top, icon + value, right-aligned
+            RowLayout {
                 Layout.alignment: Qt.AlignRight
-                horizontalAlignment: Text.AlignRight
-                text: (root.charging ? "🔌 " : "🕐 ") + fmtTime(root.hoursLeft)
-                color: "white"
-                font.pixelSize: Math.max(8, Math.round(comp.height * 0.5))
-                font.bold: true
+                spacing: 4
+                Kirigami.Icon {
+                    source: root.charging ? "battery-100-charging" : "chronometer"
+                    isMask: true; color: "white"
+                    Layout.preferredWidth: Math.round(comp.height * 0.30)
+                    Layout.preferredHeight: Layout.preferredWidth
+                }
+                PlasmaComponents.Label {
+                    text: fmtTime(root.hoursLeft)
+                    color: "white"
+                    font.pixelSize: Math.max(8, Math.round(comp.height * 0.34))
+                    font.bold: true
+                }
             }
 
-            // 2x2 grid below: ⚙ cpu | 🌡 temp · ⚡ watt | 🔋 charge
+            // 4-col grid: [icon value]  [icon value] — columns keep icons and
+            // values on shared flush lines
             GridLayout {
+                id: grid
                 Layout.alignment: Qt.AlignRight
-                columns: 2
-                rowSpacing: 0
-                columnSpacing: 6
+                columns: 4
+                rowSpacing: 2
+                columnSpacing: 4
+                property int iconPx: 13
+
+                Kirigami.Icon { source: "cpu"; isMask: true; color: "white"
+                    Layout.preferredWidth: grid.iconPx; Layout.preferredHeight: grid.iconPx }
                 PlasmaComponents.Label {
-                    text: "⚙ " + (root.cpuPct < 0 ? root.pad("…", 4) : root.pad(Math.round(root.cpuPct) + "%", 4))
-                    color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
+                    text: root.cpuPct < 0 ? root.pad("…", 4) : root.pad(Math.round(root.cpuPct) + "%", 4)
+                    color: "white"; font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
+                Kirigami.Icon { source: "temperature-normal"; isMask: true; color: "white"
+                    Layout.preferredWidth: grid.iconPx; Layout.preferredHeight: grid.iconPx }
                 PlasmaComponents.Label {
-                    text: "🌡 " + (root.tempC < 0 ? root.pad("—", 5) : root.pad(Math.round(root.tempC) + "°C", 5))
-                    color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
+                    text: root.tempC < 0 ? root.pad("—", 5) : root.pad(Math.round(root.tempC) + "°C", 5)
+                    color: "white"; font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
+                Kirigami.Icon { source: "flash"; isMask: true; color: "white"
+                    Layout.preferredWidth: grid.iconPx; Layout.preferredHeight: grid.iconPx }
                 PlasmaComponents.Label {
-                    text: "⚡ " + (root.watts < 0 ? root.pad("…W", 4) : root.pad(Math.round(root.watts) + "W", 4))
-                    color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
+                    text: root.watts < 0 ? root.pad("…W", 4) : root.pad(Math.round(root.watts) + "W", 4)
+                    color: "white"; font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
+                Kirigami.Icon { source: "battery-100"; isMask: true; color: "white"
+                    Layout.preferredWidth: grid.iconPx; Layout.preferredHeight: grid.iconPx }
                 PlasmaComponents.Label {
-                    text: "🔋 " + (root.percent < 0 ? root.pad("—", 4) : root.pad(root.percent + "%", 4))
-                    color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
+                    text: root.percent < 0 ? root.pad("—", 4) : root.pad(root.percent + "%", 4)
+                    color: "white"; font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
             }
@@ -90,29 +111,46 @@ PlasmoidItem {
     }
 
     fullRepresentation: ColumnLayout {
-        PlasmaComponents.Label {
+        RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            text: (root.charging ? "🔌 " : "🕐 ") + fmtTime(root.hoursLeft)
-            color: "white"
-            font.pointSize: 18
-            font.bold: true
+            spacing: 8
+            Kirigami.Icon {
+                source: root.charging ? "battery-100-charging" : "chronometer"
+                isMask: true; color: "white"
+                Layout.preferredWidth: 22; Layout.preferredHeight: 22
+            }
+            PlasmaComponents.Label {
+                text: fmtTime(root.hoursLeft)
+                color: "white"; font.pointSize: 18; font.bold: true
+            }
         }
-        PlasmaComponents.Label {
+        GridLayout {
             Layout.alignment: Qt.AlignHCenter
-            text: "⚙ " + (root.cpuPct < 0 ? "…%" : Math.round(root.cpuPct) + "%")
-                + (root.tempC < 0 ? "" : "    🌡 " + Math.round(root.tempC) + "°C")
-            color: "white"
-            opacity: 0.8
-            font.pointSize: 9
-            font.family: "monospace"
-        }
-        PlasmaComponents.Label {
-            Layout.alignment: Qt.AlignHCenter
-            text: "⚡ " + (root.watts < 0 ? "…W" : Math.round(root.watts) + "W")
-                + (root.percent < 0 ? "" : "    🔋 " + root.percent + "%")
-            color: "white"
-            font.pointSize: 11
-            font.family: "monospace"
+            columns: 4
+            rowSpacing: 4
+            columnSpacing: 6
+            property int iconPx: 18
+
+            Kirigami.Icon { source: "cpu"; isMask: true; color: "white"
+                Layout.preferredWidth: iconPx; Layout.preferredHeight: iconPx }
+            PlasmaComponents.Label { text: root.cpuPct < 0 ? "…%" : Math.round(root.cpuPct) + "%"
+                color: "white"; font.pointSize: 11; font.family: "monospace"
+                horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
+            Kirigami.Icon { source: "temperature-normal"; isMask: true; color: "white"
+                Layout.preferredWidth: iconPx; Layout.preferredHeight: iconPx }
+            PlasmaComponents.Label { text: root.tempC < 0 ? "—" : Math.round(root.tempC) + "°C"
+                color: "white"; font.pointSize: 11; font.family: "monospace"
+                horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
+            Kirigami.Icon { source: "flash"; isMask: true; color: "white"
+                Layout.preferredWidth: iconPx; Layout.preferredHeight: iconPx }
+            PlasmaComponents.Label { text: root.watts < 0 ? "…W" : Math.round(root.watts) + "W"
+                color: "white"; font.pointSize: 11; font.family: "monospace"
+                horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
+            Kirigami.Icon { source: "battery-100"; isMask: true; color: "white"
+                Layout.preferredWidth: iconPx; Layout.preferredHeight: iconPx }
+            PlasmaComponents.Label { text: root.percent < 0 ? "—" : root.percent + "%"
+                color: "white"; font.pointSize: 11; font.family: "monospace"
+                horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
         }
     }
 
