@@ -15,6 +15,8 @@ PlasmoidItem {
     property real cpuPct: -1      // CPU usage 0..100; <0 = unknown (first tick)
     property int prevIdle: -1     // /proc/stat idle jiffies from last tick
     property int prevTotal: -1    // /proc/stat total jiffies from last tick
+    property var powerHist: []    // last power_now samples (µW) for smoothing
+    readonly property int powerHistMax: 12   // 12 × 5s ≈ last minute
 
     // set after the component tree exists, so it never resolves to null
     Component.onCompleted: root.preferredRepresentation = root.compactRepresentation
@@ -138,11 +140,23 @@ PlasmoidItem {
             root.watts    = power / 1e6
             root.percent  = parseInt(p[3])
             if (isNaN(root.percent)) root.percent = -1
-            root.charging = (p[4] === "Charging" || p[4] === "Full")
-            if (power > 0)
-                root.hoursLeft = root.charging ? (ef - en) / power : en / power
-            else
+            var charging = (p[4] === "Charging" || p[4] === "Full")
+            if (charging !== root.charging) root.powerHist = []   // mode flip → drop stale samples
+            root.charging = charging
+
+            // remaining time from the average draw over the last minute, not the
+            // instantaneous power_now (which jitters a lot)
+            if (power > 0) {
+                var h = root.powerHist
+                h.push(power)
+                while (h.length > root.powerHistMax) h.shift()
+                root.powerHist = h
+                var avg = h.reduce(function(a, b) { return a + b }, 0) / h.length
+                root.hoursLeft = root.charging ? (ef - en) / avg : en / avg
+            } else {
+                root.powerHist = []
                 root.hoursLeft = -1
+            }
             var t = parseInt(p[5])          // millidegrees C
             root.tempC = (isNaN(t) || t < 0) ? -1 : t / 1000
             var idle = parseInt(p[6]), total = parseInt(p[7])   // jiffies
