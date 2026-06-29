@@ -19,6 +19,10 @@ PlasmoidItem {
     // set after the component tree exists, so it never resolves to null
     Component.onCompleted: root.preferredRepresentation = root.compactRepresentation
 
+    // left-pad with spaces to a fixed length; with a monospace font this keeps
+    // every value the same pixel width so the readout never jitters
+    function pad(s, n) { s = "" + s; while (s.length < n) s = " " + s; return s }
+
     function fmtTime(h) {
         if (h < 0 || !isFinite(h)) return "—"
         var m = Math.round(h * 60)
@@ -58,20 +62,24 @@ PlasmoidItem {
                 rowSpacing: 0
                 columnSpacing: 6
                 PlasmaComponents.Label {
-                    text: root.cpuPct < 0 ? "…%" : Math.round(root.cpuPct) + "%"
-                    color: "white"; opacity: 0.8; font.pointSize: 6
+                    text: root.cpuPct < 0 ? root.pad("…", 4) : root.pad(Math.round(root.cpuPct) + "%", 4)
+                    color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
+                    horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.tempC < 0 ? "—" : Math.round(root.tempC) + "°C"
-                    color: "white"; opacity: 0.8; font.pointSize: 6
+                    text: root.tempC < 0 ? root.pad("—", 5) : root.pad(Math.round(root.tempC) + "°C", 5)
+                    color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
+                    horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.watts < 0 ? "… W" : Math.round(root.watts) + " W"
-                    color: "white"; opacity: 0.8; font.pointSize: 6
+                    text: root.watts < 0 ? root.pad("…W", 4) : root.pad(Math.round(root.watts) + "W", 4)
+                    color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
+                    horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.percent < 0 ? "—" : root.percent + " %"
-                    color: "white"; opacity: 0.8; font.pointSize: 6
+                    text: root.percent < 0 ? root.pad("—", 4) : root.pad(root.percent + "%", 4)
+                    color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
+                    horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
             }
         }
@@ -92,13 +100,15 @@ PlasmoidItem {
             color: "white"
             opacity: 0.8
             font.pointSize: 9
+            font.family: "monospace"
         }
         PlasmaComponents.Label {
             Layout.alignment: Qt.AlignHCenter
-            text: (root.watts < 0 ? "… W" : Math.round(root.watts) + " W")
-                + (root.percent < 0 ? "" : "   " + root.percent + " %")
+            text: (root.watts < 0 ? "…W" : Math.round(root.watts) + "W")
+                + (root.percent < 0 ? "" : "   " + root.percent + "%")
             color: "white"
             font.pointSize: 11
+            font.family: "monospace"
         }
     }
 
