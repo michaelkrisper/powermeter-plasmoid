@@ -17,6 +17,7 @@ PlasmoidItem {
     property int prevTotal: -1    // /proc/stat total jiffies from last tick
     property var powerHist: []    // last power_now samples (µW) for smoothing
     readonly property int powerHistMax: 12   // 12 × 5s ≈ last minute
+    readonly property real powerLawExp: 2.0  // weight = rank^exp; higher = more responsive (less damping)
 
     // set after the component tree exists, so it never resolves to null
     Component.onCompleted: root.preferredRepresentation = root.compactRepresentation
@@ -144,14 +145,20 @@ PlasmoidItem {
             if (charging !== root.charging) root.powerHist = []   // mode flip → drop stale samples
             root.charging = charging
 
-            // remaining time from the average draw over the last minute, not the
-            // instantaneous power_now (which jitters a lot)
+            // remaining time from a power-law weighted draw over the last minute:
+            // newer samples weigh more (rank^exp), so it tracks recent changes but
+            // still ignores the per-tick jitter of instantaneous power_now
             if (power > 0) {
                 var h = root.powerHist
                 h.push(power)
                 while (h.length > root.powerHistMax) h.shift()
                 root.powerHist = h
-                var avg = h.reduce(function(a, b) { return a + b }, 0) / h.length
+                var num = 0, den = 0
+                for (var i = 0; i < h.length; i++) {
+                    var w = Math.pow(i + 1, root.powerLawExp)   // i=0 oldest … newest heaviest
+                    num += h[i] * w; den += w
+                }
+                var avg = num / den
                 root.hoursLeft = root.charging ? (ef - en) / avg : en / avg
             } else {
                 root.powerHist = []
