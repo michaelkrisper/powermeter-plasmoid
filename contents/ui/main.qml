@@ -57,13 +57,13 @@ PlasmoidItem {
                 Kirigami.Icon {
                     source: root.charging ? "battery-100-charging" : "chronometer"
                     isMask: true; color: "white"
-                    Layout.preferredWidth: Math.round(comp.height * 0.30)
+                    Layout.preferredWidth: Math.round(comp.height * 0.38)
                     Layout.preferredHeight: Layout.preferredWidth
                 }
                 PlasmaComponents.Label {
                     text: fmtTime(root.hoursLeft)
                     color: "white"
-                    font.pixelSize: Math.max(8, Math.round(comp.height * 0.34))
+                    font.pixelSize: Math.max(8, Math.round(comp.height * 0.42))
                     font.bold: true
                 }
             }
