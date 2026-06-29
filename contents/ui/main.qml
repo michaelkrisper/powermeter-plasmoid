@@ -17,7 +17,7 @@ PlasmoidItem {
     property int prevTotal: -1    // /proc/stat total jiffies from last tick
     property var powerHist: []    // last power_now samples (µW) for smoothing
     readonly property int powerHistMax: 12   // 12 × 5s ≈ last minute
-    readonly property real powerLawExp: 2.0  // weight = rank^exp; higher = more responsive (less damping)
+    readonly property real powerLawExp: 1.2  // weight = rank^exp; higher = more responsive (less damping)
 
     // set after the component tree exists, so it never resolves to null
     Component.onCompleted: root.preferredRepresentation = root.compactRepresentation
