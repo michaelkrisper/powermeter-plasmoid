@@ -49,38 +49,39 @@ PlasmoidItem {
             anchors.centerIn: parent
             spacing: 0
 
-            // remaining time — biggest, top, centered
+            // remaining time — biggest, top, right-aligned
             PlasmaComponents.Label {
-                Layout.alignment: Qt.AlignHCenter
-                text: (root.charging ? "⚡ " : "") + fmtTime(root.hoursLeft)
+                Layout.alignment: Qt.AlignRight
+                horizontalAlignment: Text.AlignRight
+                text: (root.charging ? "🔌 " : "🕐 ") + fmtTime(root.hoursLeft)
                 color: "white"
                 font.pixelSize: Math.max(8, Math.round(comp.height * 0.5))
                 font.bold: true
             }
 
-            // 2x2 grid below: cpu% | temp · watt | akku%
+            // 2x2 grid below: ⚙ cpu | 🌡 temp · ⚡ watt | 🔋 charge
             GridLayout {
-                Layout.alignment: Qt.AlignHCenter
+                Layout.alignment: Qt.AlignRight
                 columns: 2
                 rowSpacing: 0
                 columnSpacing: 6
                 PlasmaComponents.Label {
-                    text: root.cpuPct < 0 ? root.pad("…", 4) : root.pad(Math.round(root.cpuPct) + "%", 4)
+                    text: "⚙ " + (root.cpuPct < 0 ? root.pad("…", 4) : root.pad(Math.round(root.cpuPct) + "%", 4))
                     color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.tempC < 0 ? root.pad("—", 5) : root.pad(Math.round(root.tempC) + "°C", 5)
+                    text: "🌡 " + (root.tempC < 0 ? root.pad("—", 5) : root.pad(Math.round(root.tempC) + "°C", 5))
                     color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.watts < 0 ? root.pad("…W", 4) : root.pad(Math.round(root.watts) + "W", 4)
+                    text: "⚡ " + (root.watts < 0 ? root.pad("…W", 4) : root.pad(Math.round(root.watts) + "W", 4))
                     color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.percent < 0 ? root.pad("—", 4) : root.pad(root.percent + "%", 4)
+                    text: "🔋 " + (root.percent < 0 ? root.pad("—", 4) : root.pad(root.percent + "%", 4))
                     color: "white"; opacity: 0.8; font.pointSize: 6; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
@@ -91,15 +92,15 @@ PlasmoidItem {
     fullRepresentation: ColumnLayout {
         PlasmaComponents.Label {
             Layout.alignment: Qt.AlignHCenter
-            text: (root.charging ? "⚡ " : "") + fmtTime(root.hoursLeft)
+            text: (root.charging ? "🔌 " : "🕐 ") + fmtTime(root.hoursLeft)
             color: "white"
             font.pointSize: 18
             font.bold: true
         }
         PlasmaComponents.Label {
             Layout.alignment: Qt.AlignHCenter
-            text: (root.cpuPct < 0 ? "…%" : Math.round(root.cpuPct) + "%")
-                + (root.tempC < 0 ? "" : "   " + Math.round(root.tempC) + "°C")
+            text: "⚙ " + (root.cpuPct < 0 ? "…%" : Math.round(root.cpuPct) + "%")
+                + (root.tempC < 0 ? "" : "    🌡 " + Math.round(root.tempC) + "°C")
             color: "white"
             opacity: 0.8
             font.pointSize: 9
@@ -107,8 +108,8 @@ PlasmoidItem {
         }
         PlasmaComponents.Label {
             Layout.alignment: Qt.AlignHCenter
-            text: (root.watts < 0 ? "…W" : Math.round(root.watts) + "W")
-                + (root.percent < 0 ? "" : "   " + root.percent + "%")
+            text: "⚡ " + (root.watts < 0 ? "…W" : Math.round(root.watts) + "W")
+                + (root.percent < 0 ? "" : "    🔋 " + root.percent + "%")
             color: "white"
             font.pointSize: 11
             font.family: "monospace"
