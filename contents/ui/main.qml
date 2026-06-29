@@ -41,7 +41,7 @@ PlasmoidItem {
 
     function fmtTime(h) {
         if (h < 0 || !isFinite(h)) return "—"
-        var m = Math.round(h * 60)
+        var m = Math.round(h * 60 / 5) * 5   // round to 5-minute precision
         var hh = Math.floor(m / 60), mm = m % 60
         if (hh <= 0) return "≈" + mm + "min"
         return "≈" + hh + "h" + (mm < 10 ? "0" : "") + mm + "min"
