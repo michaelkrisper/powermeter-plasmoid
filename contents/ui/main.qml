@@ -1,36 +1,63 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.plasmoid
-import org.kde.plasma.plasma5support as P5Support
 import org.kde.plasma.components as PlasmaComponents
+import org.kde.ksysguard.sensors as Sensors
 
 PlasmoidItem {
     id: root
 
-    property real watts: -1
-    property bool charging: false
-    property int percent: -1
+    // all values come from the shared ksystemstats daemon (DBus-activated,
+    // native, also used by plasma-systemmonitor) — no process spawns, no shell
+    readonly property real watts: rate.value === undefined ? -1 : Math.abs(rate.value)
+    readonly property bool charging: (rate.value || 0) > 0
+    readonly property int percent: pct.value === undefined ? -1 : pct.value
+    readonly property real tempC: (temp.value || 0) > 0 ? temp.value : -1
+    readonly property real cpuPct: cpu.value === undefined ? -1 : cpu.value
     property real hoursLeft: -1   // remaining time in hours; <0 = unknown
-    property real tempC: -1       // CPU package temperature in °C; <0 = unknown
-    property real cpuPct: -1      // CPU usage 0..100; <0 = unknown (first tick)
-    property int prevIdle: -1     // /proc/stat idle jiffies from last tick
-    property int prevTotal: -1    // /proc/stat total jiffies from last tick
-    property var powerHist: []    // last power_now samples (µW) for smoothing
+    property bool prevCharging: false
+    property var powerHist: []    // last chargeRate samples (W) for smoothing
     readonly property int powerHistMax: 12   // 12 × 5s ≈ last minute
     readonly property real powerLawExp: 1.2  // weight = rank^exp; higher = more responsive (less damping)
+    readonly property int tick: 5000
 
-    // smoothed display values: bound to the raw values but eased via Behavior so
-    // the readout tweens between 5s ticks instead of snapping
-    property real dWatts: root.watts < 0 ? 0 : root.watts
-    property real dCpu:   root.cpuPct < 0 ? 0 : root.cpuPct
-    property real dTemp:  root.tempC < 0 ? 0 : root.tempC
-    property real dPercent: root.percent < 0 ? 0 : root.percent
-    property real dHours: root.hoursLeft < 0 ? 0 : root.hoursLeft
-    Behavior on dWatts   { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
-    Behavior on dCpu     { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
-    Behavior on dTemp    { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
-    Behavior on dPercent { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
-    Behavior on dHours   { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
+    Sensors.Sensor { id: cpu;    sensorId: "cpu/all/usage";                        updateRateLimit: root.tick }
+    Sensors.Sensor { id: temp;   sensorId: "cpu/all/averageTemperature";           updateRateLimit: root.tick }
+    Sensors.Sensor { id: pct;    sensorId: "power/battery_BAT0/chargePercentage";  updateRateLimit: root.tick }
+    Sensors.Sensor { id: charge; sensorId: "power/battery_BAT0/charge";            updateRateLimit: root.tick }
+    Sensors.Sensor { id: cap;    sensorId: "power/battery_BAT0/capacity";          updateRateLimit: root.tick }
+    Sensors.Sensor {
+        id: rate; sensorId: "power/battery_BAT0/chargeRate"; updateRateLimit: root.tick
+        onValueChanged: root.updateRemaining()
+    }
+
+    // remaining time from a power-law weighted draw over the last minute:
+    // newer samples weigh more (rank^exp), so it tracks recent changes but
+    // still ignores the per-tick jitter of the instantaneous rate
+    function updateRemaining() {
+        var r = rate.value
+        var en = charge.value    // Wh
+        var ef = cap.value       // Wh (last full capacity)
+        if (r === undefined || en === undefined || Math.abs(r) < 0.5) {
+            root.powerHist = []
+            root.hoursLeft = -1
+            return
+        }
+        var chg = r > 0
+        if (chg !== root.prevCharging) root.powerHist = []   // mode flip → drop stale samples
+        root.prevCharging = chg
+        var h = root.powerHist
+        h.push(Math.abs(r))
+        while (h.length > root.powerHistMax) h.shift()
+        root.powerHist = h
+        var num = 0, den = 0
+        for (var i = 0; i < h.length; i++) {
+            var w = Math.pow(i + 1, root.powerLawExp)   // i=0 oldest … newest heaviest
+            num += h[i] * w; den += w
+        }
+        var avg = num / den                              // W; Wh / W = h
+        root.hoursLeft = chg ? ((ef || 0) - en) / avg : en / avg
+    }
 
     // set after the component tree exists, so it never resolves to null
     Component.onCompleted: root.preferredRepresentation = root.compactRepresentation
@@ -68,7 +95,7 @@ PlasmoidItem {
             PlasmaComponents.Label {
                 Layout.alignment: Qt.AlignRight
                 horizontalAlignment: Text.AlignRight
-                text: root.hoursLeft < 0 ? "—" : fmtTime(root.dHours)
+                text: root.fmtTime(root.hoursLeft)
                 color: "white"
                 font.pixelSize: Math.max(8, Math.round(comp.height * 0.42))
                 font.bold: true
@@ -81,22 +108,22 @@ PlasmoidItem {
                 rowSpacing: 2
                 columnSpacing: 6
                 PlasmaComponents.Label {
-                    text: root.cpuPct < 0 ? root.pad("…", 4) : root.pad(Math.round(root.dCpu) + "%", 4)
+                    text: root.cpuPct < 0 ? root.pad("…", 4) : root.pad(Math.round(root.cpuPct) + "%", 4)
                     color: "white"; font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.tempC < 0 ? root.pad("—", 5) : root.pad(Math.round(root.dTemp) + "°C", 5)
+                    text: root.tempC < 0 ? root.pad("—", 5) : root.pad(Math.round(root.tempC) + "°C", 5)
                     color: "white"; font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.watts < 0 ? root.pad("…W", 4) : root.pad(Math.round(root.dWatts) + "W", 4)
+                    text: root.watts < 0 ? root.pad("…W", 4) : root.pad(Math.round(root.watts) + "W", 4)
                     color: "white"; font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.percent < 0 ? root.pad("—", 4) : root.pad(Math.round(root.dPercent) + "%", 4)
+                    text: root.percent < 0 ? root.pad("—", 4) : root.pad(root.percent + "%", 4)
                     color: "white"; font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
@@ -107,7 +134,7 @@ PlasmoidItem {
     fullRepresentation: ColumnLayout {
         PlasmaComponents.Label {
             Layout.alignment: Qt.AlignHCenter
-            text: root.hoursLeft < 0 ? "—" : fmtTime(root.dHours)
+            text: root.fmtTime(root.hoursLeft)
             color: "white"; font.pointSize: 18; font.bold: true
         }
         GridLayout {
@@ -115,79 +142,18 @@ PlasmoidItem {
             columns: 2
             rowSpacing: 4
             columnSpacing: 12
-            PlasmaComponents.Label { text: root.cpuPct < 0 ? "…%" : Math.round(root.dCpu) + "%"
+            PlasmaComponents.Label { text: root.cpuPct < 0 ? "…%" : Math.round(root.cpuPct) + "%"
                 color: "white"; font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
-            PlasmaComponents.Label { text: root.tempC < 0 ? "—" : Math.round(root.dTemp) + "°C"
+            PlasmaComponents.Label { text: root.tempC < 0 ? "—" : Math.round(root.tempC) + "°C"
                 color: "white"; font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
-            PlasmaComponents.Label { text: root.watts < 0 ? "…W" : Math.round(root.dWatts) + "W"
+            PlasmaComponents.Label { text: root.watts < 0 ? "…W" : Math.round(root.watts) + "W"
                 color: "white"; font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
-            PlasmaComponents.Label { text: root.percent < 0 ? "—" : Math.round(root.dPercent) + "%"
+            PlasmaComponents.Label { text: root.percent < 0 ? "—" : root.percent + "%"
                 color: "white"; font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
-        }
-    }
-
-    // 'read' is a shell builtin → only the shell process is spawned per tick,
-    // no extra cat forks. Keeps wakeup cost minimal.
-    readonly property string cmd:
-        "read P  < /sys/class/power_supply/BAT0/power_now  2>/dev/null;" +
-        "read EN < /sys/class/power_supply/BAT0/energy_now 2>/dev/null;" +
-        "read EF < /sys/class/power_supply/BAT0/energy_full 2>/dev/null;" +
-        "read C  < /sys/class/power_supply/BAT0/capacity   2>/dev/null;" +
-        "read S  < /sys/class/power_supply/BAT0/status     2>/dev/null;" +
-        "read T  < /sys/class/thermal/thermal_zone0/temp   2>/dev/null;" +
-        "read _ CU CN CS CI CW CQ CSQ R < /proc/stat 2>/dev/null;" +
-        "IDLE=$((CI+CW)); TOTAL=$((CU+CN+CS+CI+CW+CQ+CSQ));" +
-        "printf '%s %s %s %s %s %s %s %s' \"${P:-0}\" \"${EN:-0}\" \"${EF:-0}\" \"${C:--1}\" \"${S:-?}\" \"${T:--1}\" \"${IDLE:--1}\" \"${TOTAL:--1}\""
-
-    P5Support.DataSource {
-        id: exe
-        engine: "executable"
-        connectedSources: [root.cmd]
-        interval: 5000
-        onNewData: function(source, data) {
-            var p = (data["stdout"] || "").trim().split(/\s+/)
-            var power = parseInt(p[0]) || 0          // µW
-            var en    = parseInt(p[1]) || 0          // µWh
-            var ef    = parseInt(p[2]) || 0          // µWh
-            root.watts    = power / 1e6
-            root.percent  = parseInt(p[3])
-            if (isNaN(root.percent)) root.percent = -1
-            var charging = (p[4] === "Charging" || p[4] === "Full")
-            if (charging !== root.charging) root.powerHist = []   // mode flip → drop stale samples
-            root.charging = charging
-
-            // remaining time from a power-law weighted draw over the last minute:
-            // newer samples weigh more (rank^exp), so it tracks recent changes but
-            // still ignores the per-tick jitter of instantaneous power_now
-            if (power > 0) {
-                var h = root.powerHist
-                h.push(power)
-                while (h.length > root.powerHistMax) h.shift()
-                root.powerHist = h
-                var num = 0, den = 0
-                for (var i = 0; i < h.length; i++) {
-                    var w = Math.pow(i + 1, root.powerLawExp)   // i=0 oldest … newest heaviest
-                    num += h[i] * w; den += w
-                }
-                var avg = num / den
-                root.hoursLeft = root.charging ? (ef - en) / avg : en / avg
-            } else {
-                root.powerHist = []
-                root.hoursLeft = -1
-            }
-            var t = parseInt(p[5])          // millidegrees C
-            root.tempC = (isNaN(t) || t < 0) ? -1 : t / 1000
-            var idle = parseInt(p[6]), total = parseInt(p[7])   // jiffies
-            if (!isNaN(idle) && !isNaN(total) && root.prevTotal >= 0) {
-                var dt = total - root.prevTotal
-                if (dt > 0)
-                    root.cpuPct = Math.max(0, Math.min(100, (1 - (idle - root.prevIdle) / dt) * 100))
-            }
-            if (!isNaN(idle) && !isNaN(total)) { root.prevIdle = idle; root.prevTotal = total }
         }
     }
 }

@@ -10,22 +10,25 @@ Compact panel layout:
  27 W  84 %    ← power draw · charge level
 ```
 
-On AC a `⚡` prefix is shown and the time counts toward full.
+While charging, the time counts toward full.
 
 ## Data sources
 
-Read once per tick via a single shell process (no `cat` forks):
+All values come from the `ksystemstats` daemon (part of Plasma, shared with
+plasma-systemmonitor) via the `org.kde.ksysguard.sensors` QML module — the
+widget spawns no processes at all:
 
-- `/sys/class/power_supply/BAT0/{power_now,energy_now,energy_full,capacity,status}` — power, remaining time, charge
-- `/sys/class/thermal/thermal_zone0/temp` — CPU package temperature (`x86_pkg_temp`)
-- `/proc/stat` — CPU load, computed as the busy/total jiffy delta between ticks
+- `cpu/all/usage`, `cpu/all/averageTemperature` — CPU load and temperature
+- `power/battery_BAT0/{chargeRate,charge,capacity,chargePercentage}` — power
+  draw, remaining time, charge
 
-Update interval: 5 s. CPU load needs two ticks before the first value appears.
+Update interval: 5 s (`updateRateLimit`). Remaining time is a power-law
+weighted average of the charge rate over the last minute.
 
 ## Requirements
 
-- KDE Plasma 6 (`X-Plasma-API-Minimum-Version` 6.0)
-- A Linux system exposing `/sys/class/power_supply/BAT0`, `/sys/class/thermal/thermal_zone0` and `/proc/stat`
+- KDE Plasma 6 (`X-Plasma-API-Minimum-Version` 6.0) with `libksysguard`
+  (ships with Plasma)
 
 ## Install
 
@@ -67,6 +70,6 @@ rm -rf ~/.cache/plasmashell/qmlcache ~/.cache/org.kde.plasmashell
 
 ## Notes
 
-- Battery path `BAT0` and thermal zone `thermal_zone0` are hardcoded; adjust in
+- The battery sensor id `power/battery_BAT0` is hardcoded; adjust in
   `contents/ui/main.qml` for other hardware.
 - Built and tuned on a MacBook Pro 11,1 running Fedora KDE (Plasma 6).
