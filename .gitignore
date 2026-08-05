@@ -1,0 +1,11 @@
+# Build / packaging
+build/
+*.plasmoid
+*.tar.gz
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
