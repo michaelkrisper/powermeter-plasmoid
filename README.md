@@ -1,13 +1,18 @@
 # Power Meter
 
+[![CI](https://github.com/michaelkrisper/powermeter-plasmoid/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelkrisper/powermeter-plasmoid/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/michaelkrisper/powermeter-plasmoid)](LICENSE)
+[![KDE Plasma 6](https://img.shields.io/badge/KDE%20Plasma-6-1d99f3)](https://kde.org/plasma-desktop/)
+[![QML](https://img.shields.io/badge/language-QML-41cd52)](contents/ui/main.qml)
+
 A minimal Plasma 6 panel widget (plasmoid) showing live system power and load.
 
 Compact panel layout:
 
 ```
-   2:45        ← battery time left (large)
- 12%   62°C    ← CPU load · CPU package temperature
- 27 W  84 %    ← power draw · charge level
+ ≈2h45min      ← battery time left (large)
+  12%   62°C   ← CPU load · CPU temperature
+  27W   84%    ← power draw · charge level
 ```
 
 While charging, the time counts toward full.
@@ -68,8 +73,24 @@ If QML changes don't show up, clear the cache first:
 rm -rf ~/.cache/plasmashell/qmlcache ~/.cache/org.kde.plasmashell
 ```
 
+## Development
+
+Run the tests (Node.js, no dependencies):
+
+```sh
+node --test
+```
+
+They cover the pure helpers in `contents/ui/logic.js` (weighted draw, remaining
+time, formatting) and check `metadata.json`. CI also runs `qmllint` on the QML.
+The widget itself needs a running Plasma shell, so CI does not start it.
+
 ## Notes
 
 - The battery sensor id `power/battery_BAT0` is hardcoded; adjust in
   `contents/ui/main.qml` for other hardware.
 - Built and tuned on a MacBook Pro 11,1 running Fedora KDE (Plasma 6).
+
+## License
+
+[MIT](LICENSE)
