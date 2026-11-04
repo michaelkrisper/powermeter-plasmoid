@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+      - run: node --test
+
+  qmllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-layouts
+      # The KDE modules are not installable here, so missing imports are not reported.
+      - run: /usr/lib/qt6/bin/qmllint --import disable --unqualified disable contents/ui/main.qml
