@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,3 +27,25 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-layouts
       # The KDE modules are not installable here, so missing imports are not reported.
       - run: /usr/lib/qt6/bin/qmllint --import disable --unqualified disable contents/ui/main.qml
+
+  # Tags every tested commit on main with the next patch version (vX.Y.Z).
+  version:
+    name: Version tag
+    needs: [test, qmllint]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: version-tag
+      cancel-in-progress: false
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: tag
+        run: python3 .github/scripts/release.py tag
+        env:
+          GH_TOKEN: ${{ github.token }}

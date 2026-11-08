@@ -1,6 +1,7 @@
 # Power Meter
 
 [![CI](https://github.com/michaelkrisper/powermeter-plasmoid/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelkrisper/powermeter-plasmoid/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/github/v/tag/michaelkrisper/powermeter-plasmoid?sort=semver&label=version)](https://github.com/michaelkrisper/powermeter-plasmoid/releases)
 [![License: MIT](https://img.shields.io/github/license/michaelkrisper/powermeter-plasmoid)](LICENSE)
 [![KDE Plasma 6](https://img.shields.io/badge/KDE%20Plasma-6-1d99f3)](https://kde.org/plasma-desktop/)
 [![QML](https://img.shields.io/badge/language-QML-41cd52)](contents/ui/main.qml)
@@ -84,6 +85,13 @@ node --test
 They cover the pure helpers in `contents/ui/logic.js` (weighted draw, remaining
 time, formatting) and check `metadata.json`. CI also runs `qmllint` on the QML.
 The widget itself needs a running Plasma shell, so CI does not start it.
+Every merge to `main` is tagged with the next patch version; bundled releases
+with release notes come from the Release workflow.
+
+## Contributing
+
+Changes start with an issue and go through a pull request; see
+[CONTRIBUTING](CONTRIBUTING.md).
 
 ## Notes
 
