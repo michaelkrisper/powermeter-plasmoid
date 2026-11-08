@@ -9,3 +9,6 @@ build/
 *.swp
 *~
 .DS_Store
+
+# Machine-specific Claude notes
+CLAUDE.local.md
