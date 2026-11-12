@@ -1,6 +1,19 @@
 # Power Meter
 
-A minimal Plasma 6 panel widget (plasmoid) showing live system power and load.
+A minimal KDE Plasma 6 panel widget showing battery time left, CPU load and temperature, power draw and charge.
+
+[![CI](https://github.com/michaelkrisper/powermeter-plasmoid/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelkrisper/powermeter-plasmoid/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Plasma 6](https://img.shields.io/badge/KDE_Plasma-6-1d99f3.svg)](https://kde.org/plasma-desktop/)
+[![QML](https://img.shields.io/badge/QML-Qt_6-41cd52.svg)](https://doc.qt.io/qt-6/qmlapplications.html)
+
+## Features
+
+- Compact four-value readout plus a large remaining-time line, sized for a panel
+- Remaining time to empty or, while charging, to full, smoothed over the last minute
+- Fixed-width monospace values, so the panel never jitters as numbers change
+- Zero process spawns: everything is read from the `ksystemstats` daemon
+- Follows the Plasma colour scheme; user interface text is English
 
 Compact panel layout:
 
@@ -12,7 +25,7 @@ Compact panel layout:
 
 While charging, the time counts toward full.
 
-## Data sources
+## How it works
 
 All values come from the `ksystemstats` daemon (part of Plasma, shared with
 plasma-systemmonitor) via the `org.kde.ksysguard.sensors` QML module — the
@@ -22,8 +35,17 @@ widget spawns no processes at all:
 - `power/battery_BAT0/{chargeRate,charge,capacity,chargePercentage}` — power
   draw, remaining time, charge
 
-Update interval: 5 s (`updateRateLimit`). Remaining time is a power-law
-weighted average of the charge rate over the last minute.
+Update interval: 5 s (`updateRateLimit`). On every charge-rate update the
+absolute rate is appended to a 12-sample ring (about one minute); sample *i*
+(oldest = 1) is weighted by *i*^1.2, so recent changes show up quickly while
+per-tick jitter is damped. Remaining time is `charge / rate` when discharging
+and `(capacity − charge) / rate` when charging, rounded to 5 minutes. The
+history is reset when the battery switches between charging and discharging
+or the rate drops below 0.5 W.
+
+Layout and sensor bindings live in `contents/ui/main.qml`; the pure
+formatting and estimation helpers live in `contents/ui/logic.js`
+(a `.pragma library` script) so they can be unit-tested outside Plasma.
 
 ## Requirements
 
@@ -68,8 +90,32 @@ If QML changes don't show up, clear the cache first:
 rm -rf ~/.cache/plasmashell/qmlcache ~/.cache/org.kde.plasmashell
 ```
 
+## Development
+
+Requirements: Node.js 20+ for the tests; Qt 6 `qmllint` and `jq` for linting
+(Ubuntu: `qt6-declarative-dev-tools`, `jq`).
+
+```sh
+node --test                                           # unit tests for contents/ui/logic.js
+/usr/lib/qt6/bin/qmllint contents/ui/*.qml contents/ui/*.js   # QML/JS lint
+jq -e . metadata.json                                 # metadata is valid JSON
+```
+
+Plasma 6 QML modules are not available on the Ubuntu CI runner, so CI runs
+`qmllint` with type-resolution checks downgraded to info: syntax errors fail
+the build, unresolved Plasma types do not. See `.github/workflows/ci.yml` for
+the exact steps.
+
+To try changes, install via the clone above (or symlink your working copy to
+`~/.local/share/plasma/plasmoids/com.local.powermeter`), clear the QML cache
+and restart `plasmashell`.
+
 ## Notes
 
 - The battery sensor id `power/battery_BAT0` is hardcoded; adjust in
   `contents/ui/main.qml` for other hardware.
 - Built and tuned on a MacBook Pro 11,1 running Fedora KDE (Plasma 6).
+
+## License
+
+[MIT](LICENSE) © Michael Krisper
