@@ -79,7 +79,6 @@ PlasmoidItem {
                 Layout.alignment: Qt.AlignRight
                 horizontalAlignment: Text.AlignRight
                 text: Logic.formatTime(root.hoursLeft)
-                color: "white"
                 font.pixelSize: Math.max(8, Math.round(comp.height * 0.42))
                 font.bold: true
             }
@@ -92,22 +91,22 @@ PlasmoidItem {
                 columnSpacing: 6
                 PlasmaComponents.Label {
                     text: root.cpuPct < 0 ? Logic.pad("…", 4) : Logic.pad(Math.round(root.cpuPct) + "%", 4)
-                    color: "white"; font.pointSize: 8; font.family: "monospace"
+                    font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
                     text: root.tempC < 0 ? Logic.pad("—", 5) : Logic.pad(Math.round(root.tempC) + "°C", 5)
-                    color: "white"; font.pointSize: 8; font.family: "monospace"
+                    font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
                     text: root.watts < 0 ? Logic.pad("…W", 4) : Logic.pad(Math.round(root.watts) + "W", 4)
-                    color: "white"; font.pointSize: 8; font.family: "monospace"
+                    font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
                     text: root.percent < 0 ? Logic.pad("—", 4) : Logic.pad(root.percent + "%", 4)
-                    color: "white"; font.pointSize: 8; font.family: "monospace"
+                    font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
             }
@@ -118,7 +117,7 @@ PlasmoidItem {
         PlasmaComponents.Label {
             Layout.alignment: Qt.AlignHCenter
             text: Logic.formatTime(root.hoursLeft)
-            color: "white"; font.pointSize: 18; font.bold: true
+            font.pointSize: 18; font.bold: true
         }
         GridLayout {
             Layout.alignment: Qt.AlignHCenter
@@ -126,16 +125,16 @@ PlasmoidItem {
             rowSpacing: 4
             columnSpacing: 12
             PlasmaComponents.Label { text: root.cpuPct < 0 ? "…%" : Math.round(root.cpuPct) + "%"
-                color: "white"; font.pointSize: 11; font.family: "monospace"
+                font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
             PlasmaComponents.Label { text: root.tempC < 0 ? "—" : Math.round(root.tempC) + "°C"
-                color: "white"; font.pointSize: 11; font.family: "monospace"
+                font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
             PlasmaComponents.Label { text: root.watts < 0 ? "…W" : Math.round(root.watts) + "W"
-                color: "white"; font.pointSize: 11; font.family: "monospace"
+                font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
             PlasmaComponents.Label { text: root.percent < 0 ? "—" : root.percent + "%"
-                color: "white"; font.pointSize: 11; font.family: "monospace"
+                font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
         }
     }
