@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.ksysguard.sensors as Sensors
+import "logic.js" as Logic
 
 PlasmoidItem {
     id: root
@@ -46,40 +47,19 @@ PlasmoidItem {
         var chg = r > 0
         if (chg !== root.prevCharging) root.powerHist = []   // mode flip → drop stale samples
         root.prevCharging = chg
-        var h = root.powerHist
-        h.push(Math.abs(r))
-        while (h.length > root.powerHistMax) h.shift()
-        root.powerHist = h
-        var num = 0, den = 0
-        for (var i = 0; i < h.length; i++) {
-            var w = Math.pow(i + 1, root.powerLawExp)   // i=0 oldest … newest heaviest
-            num += h[i] * w; den += w
-        }
-        var avg = num / den                              // W; Wh / W = h
-        root.hoursLeft = chg ? ((ef || 0) - en) / avg : en / avg
+        root.powerHist = Logic.pushSample(root.powerHist, Math.abs(r), root.powerHistMax)
+        root.hoursLeft = Logic.hoursLeft(Logic.weightedMean(root.powerHist, root.powerLawExp), en, ef, chg)
     }
 
     // set after the component tree exists, so it never resolves to null
     Component.onCompleted: root.preferredRepresentation = root.compactRepresentation
-
-    // left-pad with spaces to a fixed length; with a monospace font this keeps
-    // every value the same pixel width so the readout never jitters
-    function pad(s, n) { s = "" + s; while (s.length < n) s = " " + s; return s }
-
-    function fmtTime(h) {
-        if (h < 0 || !isFinite(h)) return "—"
-        var m = Math.round(h * 60 / 5) * 5   // round to 5-minute precision
-        var hh = Math.floor(m / 60), mm = m % 60
-        if (hh <= 0) return "≈" + mm + "min"
-        return "≈" + hh + "h" + (mm < 10 ? "0" : "") + mm + "min"
-    }
 
     toolTipMainText: root.watts < 0
         ? "Power meter"
         : (Math.round(root.watts) + " W " + (root.charging ? "(charging)" : "(battery)"))
     toolTipSubText: root.percent < 0
         ? ""
-        : (root.percent + " % · " + fmtTime(root.hoursLeft) + (root.charging ? " to full" : " left"))
+        : (root.percent + " % · " + Logic.fmtTime(root.hoursLeft) + (root.charging ? " to full" : " left"))
 
     compactRepresentation: Item {
         id: comp
@@ -95,8 +75,7 @@ PlasmoidItem {
             PlasmaComponents.Label {
                 Layout.alignment: Qt.AlignRight
                 horizontalAlignment: Text.AlignRight
-                text: root.fmtTime(root.hoursLeft)
-                color: "white"
+                text: Logic.fmtTime(root.hoursLeft)
                 font.pixelSize: Math.max(8, Math.round(comp.height * 0.42))
                 font.bold: true
             }
@@ -108,23 +87,23 @@ PlasmoidItem {
                 rowSpacing: 2
                 columnSpacing: 6
                 PlasmaComponents.Label {
-                    text: root.cpuPct < 0 ? root.pad("…", 4) : root.pad(Math.round(root.cpuPct) + "%", 4)
-                    color: "white"; font.pointSize: 8; font.family: "monospace"
+                    text: root.cpuPct < 0 ? Logic.pad("…", 4) : Logic.pad(Math.round(root.cpuPct) + "%", 4)
+                    font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.tempC < 0 ? root.pad("—", 5) : root.pad(Math.round(root.tempC) + "°C", 5)
-                    color: "white"; font.pointSize: 8; font.family: "monospace"
+                    text: root.tempC < 0 ? Logic.pad("—", 5) : Logic.pad(Math.round(root.tempC) + "°C", 5)
+                    font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.watts < 0 ? root.pad("…W", 4) : root.pad(Math.round(root.watts) + "W", 4)
-                    color: "white"; font.pointSize: 8; font.family: "monospace"
+                    text: root.watts < 0 ? Logic.pad("…W", 4) : Logic.pad(Math.round(root.watts) + "W", 4)
+                    font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
                 PlasmaComponents.Label {
-                    text: root.percent < 0 ? root.pad("—", 4) : root.pad(root.percent + "%", 4)
-                    color: "white"; font.pointSize: 8; font.family: "monospace"
+                    text: root.percent < 0 ? Logic.pad("—", 4) : Logic.pad(root.percent + "%", 4)
+                    font.pointSize: 8; font.family: "monospace"
                     horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight
                 }
             }
@@ -134,8 +113,8 @@ PlasmoidItem {
     fullRepresentation: ColumnLayout {
         PlasmaComponents.Label {
             Layout.alignment: Qt.AlignHCenter
-            text: root.fmtTime(root.hoursLeft)
-            color: "white"; font.pointSize: 18; font.bold: true
+            text: Logic.fmtTime(root.hoursLeft)
+            font.pointSize: 18; font.bold: true
         }
         GridLayout {
             Layout.alignment: Qt.AlignHCenter
@@ -143,16 +122,16 @@ PlasmoidItem {
             rowSpacing: 4
             columnSpacing: 12
             PlasmaComponents.Label { text: root.cpuPct < 0 ? "…%" : Math.round(root.cpuPct) + "%"
-                color: "white"; font.pointSize: 11; font.family: "monospace"
+                font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
             PlasmaComponents.Label { text: root.tempC < 0 ? "—" : Math.round(root.tempC) + "°C"
-                color: "white"; font.pointSize: 11; font.family: "monospace"
+                font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
             PlasmaComponents.Label { text: root.watts < 0 ? "…W" : Math.round(root.watts) + "W"
-                color: "white"; font.pointSize: 11; font.family: "monospace"
+                font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
             PlasmaComponents.Label { text: root.percent < 0 ? "—" : root.percent + "%"
-                color: "white"; font.pointSize: 11; font.family: "monospace"
+                font.pointSize: 11; font.family: "monospace"
                 horizontalAlignment: Text.AlignRight; Layout.alignment: Qt.AlignRight }
         }
     }
