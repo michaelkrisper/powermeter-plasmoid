@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Qt 6 QML tooling
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends qt6-declarative-dev-tools qml6-module-qtquick qml6-module-qtquick-layouts jq
+
+      - name: Validate metadata.json
+        run: |
+          jq -e '
+            .KPackageStructure == "Plasma/Applet"
+            and (.KPlugin.Id | test("^[A-Za-z0-9._-]+$"))
+            and (.KPlugin.Name | length > 0)
+            and (.KPlugin.Version | test("^[0-9]+(\\.[0-9]+)*$"))
+            and (."X-Plasma-API-Minimum-Version" | startswith("6"))
+          ' metadata.json
+
+      - name: Lint QML/JS (qmllint)
+        # Plasma 6 / libksysguard QML modules are not packaged for Ubuntu runners, so
+        # type-resolution categories are reported as info; syntax errors still fail.
+        run: |
+          L=/usr/lib/qt6/bin/qmllint
+          args=$($L --help | awk '/^ +--[a-z-]+ <level>/ {printf "%s info ", $1}')
+          $L $args contents/ui/*.qml contents/ui/*.js
+
+      - name: Unit tests
+        run: node --test
